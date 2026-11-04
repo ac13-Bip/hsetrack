@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Statistiques HSE - HSETrack{% endblock %}
+{% block page_title %}Statistiques HSE{% endblock %}
+
+{% block content %}
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3">
+            <div class="text-muted small">Total incidents</div>
+            <div class="text-navy fs-3 fw-bold">{{ total }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3">
+            <div class="text-muted small">Ouverts</div>
+            <div class="fs-3 fw-bold text-warning">{{ ouverts }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3">
+            <div class="text-muted small">Resolus / Clotures</div>
+            <div class="fs-3 fw-bold text-success">{{ resolus }} / {{ clotures }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center p-3">
+            <div class="text-muted small">Delai moyen (j) / Retard</div>
+            <div class="text-orange fs-3 fw-bold">{{ delai_moyen_jours }} / {{ actions_en_retard }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Evolution mensuelle (periode)</div>
+            <div class="card-body"><canvas id="graphMois" height="120"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Incidents par site</div>
+            <div class="card-body"><canvas id="graphSite" height="120"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Incidents par service</div>
+            <div class="card-body"><canvas id="graphService" height="140"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Incidents par gravite</div>
+            <div class="card-body"><canvas id="graphGravite" height="140"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Incidents par type (categorie)</div>
+            <div class="card-body"><canvas id="graphCategorie" height="160"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Resume par service</div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead><tr><th>Service</th><th>Total</th></tr></thead>
+                    <tbody>
+                        {% for row in par_service %}
+                        <tr><td>{{ row.service__nom|default:"(non defini)" }}</td><td><strong>{{ row.total }}</strong></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const parMois = {{ par_mois_json|safe }};
+const parSite = {{ par_site_json|safe }};
+const parService = {{ par_service_json|safe }};
+const parGravite = {{ par_gravite_json|safe }};
+const parCategorie = {{ par_categorie_json|safe }};
+
+new Chart(document.getElementById('graphMois'), {
+    type: 'bar',
+    data: { labels: parMois.map(d => d.mois), datasets: [{ label: 'Incidents', data: parMois.map(d => d.total), backgroundColor: '#1a2e4a', borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+new Chart(document.getElementById('graphSite'), {
+    type: 'doughnut',
+    data: { labels: parSite.map(d => d.site__nom || '(non defini)'), datasets: [{ data: parSite.map(d => d.total), backgroundColor: ['#1a2e4a','#e8760a','#0dcaf0','#198754','#dc3545'] }] },
+    options: { cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('graphService'), {
+    type: 'bar',
+    data: { labels: parService.map(d => d.service__nom || '(non defini)'), datasets: [{ data: parService.map(d => d.total), backgroundColor: '#e8760a', borderRadius: 6 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } }
+});
+new Chart(document.getElementById('graphGravite'), {
+    type: 'doughnut',
+    data: { labels: parGravite.map(d => d.libelle), datasets: [{ data: parGravite.map(d => d.total), backgroundColor: ['#0dcaf0','#198754','#e8760a','#dc3545'] }] },
+    options: { cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+});
+new Chart(document.getElementById('graphCategorie'), {
+    type: 'bar',
+    data: { labels: parCategorie.map(d => d.categorie__nom), datasets: [{ data: parCategorie.map(d => d.total), backgroundColor: '#1a2e4a', borderRadius: 6 }] },
+    options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+</script>
+{% endblock %}

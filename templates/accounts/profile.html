@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Mon profil - HSETrack{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+
+{% block content %}
+<div class="carte-etroite card">
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="avatar-initiales avatar-lg">
+                {{ user.first_name|first|upper }}{{ user.last_name|first|upper }}
+            </div>
+            <div>
+                <div class="text-navy fw-bold">{{ user.get_full_name|default:user.username }}</div>
+                <span class="badge bg-secondary">{{ user.get_role_display }}</span>
+            </div>
+        </div>
+        <dl class="text-md row mb-0">
+            <dt class="col-sm-4 text-muted">Nom d'utilisateur</dt><dd class="col-sm-8">{{ user.username }}</dd>
+            <dt class="col-sm-4 text-muted">Email</dt><dd class="col-sm-8">{{ user.email|default:"-" }}</dd>
+            <dt class="col-sm-4 text-muted">Telephone</dt><dd class="col-sm-8">{{ user.telephone|default:"-" }}</dd>
+            <dt class="col-sm-4 text-muted">Service</dt><dd class="col-sm-8">{{ user.service|default:"-" }}</dd>
+            <dt class="col-sm-4 text-muted">Site</dt><dd class="col-sm-8">{{ user.site|default:"-" }}</dd>
+        </dl>
+    </div>
+</div>
+{% endblock %}

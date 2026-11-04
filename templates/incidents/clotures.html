@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Incidents clotures - HSETrack{% endblock %}
+{% block page_title %}Incidents clotures{% endblock %}
+
+{% block content %}
+
+<p class="text-muted mb-4">{{ incidents.count }} incident(s) cloture(s)</p>
+
+<div class="card">
+    <div class="card-header">Historique des incidents clotures</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Titre</th>
+                    <th>Site</th>
+                    <th>Gravite</th>
+                    <th>Cloture le</th>
+                    <th>Delai de traitement</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inc in incidents %}
+                <tr class="ligne-cliquable" onclick="location.href='{% url 'incidents:detail' inc.pk %}'">
+                    <td><a href="{% url 'incidents:detail' inc.pk %}" class="fw-semibold text-decoration-none">{{ inc.reference }}</a></td>
+                    <td class="cellule-titre">
+                        <div class="titre-tronque text-truncate" title="{{ inc.titre }}">{{ inc.titre }}</div>
+                        <small class="text-muted">{{ inc.categorie.nom }}</small>
+                    </td>
+                    <td>{{ inc.site.nom }}</td>
+                    <td><span class="badge badge-gravite-{{ inc.gravite }}">{{ inc.get_gravite_display }}</span></td>
+                    <td><small>{{ inc.cloture_le|date:"d/m/Y H:i" }}</small></td>
+                    <td>
+                        {% if inc.delai_traitement_jours is not None %}
+                        <small>{{ inc.delai_traitement_jours }} jour(s)</small>
+                        {% else %}
+                        <small class="text-muted">-</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="empty-state border-0">
+                        <i class="bi bi-archive"></i> Aucun incident cloture pour l'instant.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

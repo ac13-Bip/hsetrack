@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Connexion - HSETrack{% endblock %}
+
+{% block fullpage %}
+<div class="min-vh-100 d-flex">
+
+    <div class="login-panneau d-none d-md-flex flex-column justify-content-center p-5">
+        <div class="mb-4">
+            <span class="login-logo">
+                HSE<span class="text-orange">Track</span>
+            </span>
+        </div>
+        <h2 class="login-accroche fw-bold mb-3">
+            Plateforme intelligente de<br>
+            declaration et de suivi<br>
+            des incidents HSE
+        </h2>
+        <p class="login-texte">
+            Centralisez la declaration, la qualification et le traitement
+            de vos incidents Hygiene, Securite et Environnement.
+        </p>
+        <div class="login-atouts mt-5 d-flex gap-4">
+            <div><i class="bi bi-shield-check me-1"></i> Securise</div>
+            <div><i class="bi bi-lightning me-1"></i> Rapide</div>
+            <div><i class="bi bi-graph-up me-1"></i> Analytique</div>
+        </div>
+    </div>
+
+    <div class="flex-grow-1 d-flex flex-column justify-content-center align-items-center p-4 p-md-5 bg-white">
+        <div class="login-formulaire">
+            <h3 class="text-navy fw-bold mb-1">Connexion</h3>
+            <p class="text-md text-muted mb-4">Accedez a votre espace de travail</p>
+
+            {% if form.errors %}
+            <div class="text-md alert alert-danger py-2">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                Identifiants incorrects. Veuillez reessayer.
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="text-md form-label fw-semibold">Nom d'utilisateur</label>
+                    <input type="text" name="username" class="login-input form-control" placeholder="ex : employe1"
+                           required autofocus>
+                </div>
+                <div class="mb-4">
+                    <label class="text-md form-label fw-semibold">Mot de passe</label>
+                    <input type="password" name="password" class="login-input form-control" placeholder="••••••••"
+                           required>
+                </div>
+                <button type="submit" class="btn-orange rounded-3 btn w-100 fw-semibold py-2">
+                    Se connecter
+                </button>
+            </form>
+
+            <p class="text-xs login-note text-center mt-4">
+                Mot de passe oublie ? Contactez votre administrateur.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord - HSETrack{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+
+<!-- ===== BANDEAU D'ACTION RAPIDE, adapte au role ===== -->
+<div class="quick-action mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+        <h5 class="fw-bold mb-1">Bonjour {{ user.first_name|default:user.username }} 👋</h5>
+        <p class="quick-action-texte mb-0">
+            {% if user.peut_gerer_incidents %}
+                {{ a_qualifier|length }} incident(s) en attente de qualification.
+            {% elif user.est_technicien %}
+                {{ mes_actions|length }} action(s) a traiter actuellement.
+            {% elif user.est_direction %}
+                Vue globale tous sites confondus, {{ total }} incident(s) au total.
+            {% else %}
+                Vous pouvez declarer un incident a tout moment depuis cette page.
+            {% endif %}
+        </p>
+    </div>
+    {% if not user.est_direction %}
+    <a href="{% url 'incidents:declarer' %}" class="btn btn-orange px-4">
+        <i class="bi bi-plus-circle me-1"></i> Declarer un incident
+    </a>
+    {% endif %}
+</div>
+
+<!-- ===== KPI ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card kpi-card p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="kpi-navy kpi-icon"><i class="bi bi-clipboard-data"></i></div>
+                <div><div class="text-muted small">Total</div><div class="fs-4 fw-bold">{{ total }}</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card kpi-card p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="kpi-orange kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+                <div><div class="text-muted small">Ouverts</div><div class="fs-4 fw-bold">{{ ouverts }}</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card kpi-card p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="kpi-rouge kpi-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
+                <div><div class="text-muted small">Critiques ouverts</div><div class="fs-4 fw-bold">{{ critiques_ouverts }}</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card kpi-card p-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="kpi-vert kpi-icon"><i class="bi bi-check-circle-fill"></i></div>
+                <div><div class="text-muted small">Clotures</div><div class="fs-4 fw-bold">{{ clotures }}</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+
+        {% if a_qualifier %}
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-clipboard-check me-1"></i> A qualifier</span>
+                <a href="{% url 'incidents:liste' %}?statut=DECLARE" class="btn btn-sm btn-link p-0">Voir tout</a>
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for inc in a_qualifier %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{% url 'incidents:detail' inc.pk %}" class="text-decoration-none">
+                        <strong>{{ inc.reference }}</strong> — {{ inc.titre|truncatechars:40 }}
+                    </a>
+                    <span class="badge badge-gravite-{{ inc.gravite }}">{{ inc.get_gravite_display }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if mes_actions %}
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-tools me-1"></i> Mes actions a traiter</div>
+            <ul class="list-group list-group-flush">
+                {% for action in mes_actions %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{% url 'incidents:detail' action.incident_id %}" class="text-decoration-none">
+                            {{ action.incident.reference }}
+                        </a> — {{ action.description|truncatechars:45 }}
+                        <br><small class="text-muted">Echeance : {{ action.echeance|date:"d/m/Y" }}</small>
+                    </div>
+                    {% if action.statut == 'A_FAIRE' %}
+                    <span class="badge bg-info text-dark">A faire</span>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">En cours</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">Incidents recents</div>
+            <ul class="list-group list-group-flush">
+                {% for inc in derniers_incidents %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="{% url 'incidents:detail' inc.pk %}" class="text-decoration-none">
+                        <strong>{{ inc.reference }}</strong> — {{ inc.titre|truncatechars:40 }}
+                    </a>
+                    <span class="badge badge-statut-{{ inc.statut }}">{{ inc.get_statut_display }}</span>
+                </li>
+                {% empty %}
+                <li class="list-group-item empty-state border-0">
+                    <i class="bi bi-inbox"></i> Aucun incident pour l'instant.
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        {% if actions_en_retard %}
+        <div class="card-alerte card mb-3">
+            <div class="card-header">
+                <i class="bi bi-alarm-fill me-1"></i> Actions en retard
+            </div>
+            <ul class="list-group list-group-flush">
+                {% for action in actions_en_retard %}
+                <li class="text-sm list-group-item">
+                    <a href="{% url 'incidents:detail' action.incident_id %}">{{ action.incident.reference }}</a>
+                    — {{ action.responsable.get_full_name|default:action.responsable.username }}
+                    <br><small class="text-muted">Echeance depassee : {{ action.echeance|date:"d/m/Y" }}</small>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">Repartition par statut</div>
+            <div class="card-body">
+                <canvas id="graphStatut" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const repartitionStatut = {{ repartition_statut_json|safe }};
+new Chart(document.getElementById('graphStatut'), {
+    type: 'doughnut',
+    data: {
+        labels: repartitionStatut.map(d => d.libelle),
+        datasets: [{ data: repartitionStatut.map(d => d.total),
+            backgroundColor: ['#6c757d','#0d6efd','#0dcaf0','#fd7e14','#198754','#212529'] }]
+    },
+    options: { cutout: '60%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } } }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Ajouter une action - HSETrack{% endblock %}
+{% block page_title %}Ajouter une action corrective{% endblock %}
+
+{% block content %}
+
+<p class="text-muted mb-4">
+    <a href="{% url 'incidents:detail' incident.pk %}">{{ incident.reference }}</a>
+    &mdash; {{ incident.titre }}
+</p>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">Nouvelle action corrective / preventive</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-orange">
+                            <i class="bi bi-plus-circle me-1"></i> Ajouter l'action
+                        </button>
+                        <a href="{% url 'incidents:detail' incident.pk %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        {% if recommandations %}
+        <div class="card-ia card-ia-vert card mb-3">
+            <div class="card-header">
+                <i class="text-success bi bi-stars me-1"></i> Suggestions de l'IA
+                <small class="text-muted">(optionnel)</small>
+            </div>
+            <div class="card-body">
+                <p class="text-xs text-muted mb-3">
+                    Actions deja realisees sur des incidents similaires. Vous pouvez les
+                    utiliser comme point de depart, ou les ignorer et saisir votre propre
+                    description.
+                </p>
+                {% for reco in recommandations %}
+                <div class="mb-3 pb-3 border-bottom">
+                    <span class="badge bg-success">{{ reco.score_pertinence }}%</span>
+                    <strong class="text-sm"> {{ reco.type }}</strong>
+                    <div class="text-sm mt-1">{{ reco.description }}</div>
+                    <small class="text-muted d-block mb-2">Source : {{ reco.incident_source }}</small>
+                    <button type="button" class="btn btn-sm btn-outline-success"
+                            onclick="appliquerSuggestionIA(this)"
+                            data-type="{{ reco.type_code }}" data-description="{{ reco.description }}">
+                        <i class="bi bi-magic me-1"></i> Utiliser cette suggestion
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body empty-state">
+                <i class="bi bi-stars"></i>
+                Aucune suggestion de l'IA pour l'instant.<br>
+                <small>Aucune action terminee sur un incident similaire n'a ete trouvee.</small>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+(function () {
+    var equipeSelect = document.getElementById('id_equipe');
+    var responsableSelect = document.getElementById('id_responsable');
+    if (equipeSelect && responsableSelect) {
+        var equipesTechniciens = {{ equipes_techniciens_json|safe }};
+        var toutesLesOptions = Array.prototype.slice.call(responsableSelect.options);
+
+        function filtrerTechniciens() {
+            var equipeId = equipeSelect.value;
+            var valeurActuelle = responsableSelect.value;
+
+            responsableSelect.innerHTML = '';
+            toutesLesOptions.forEach(function (option) {
+                var techniciensDeLequipe = equipesTechniciens[equipeId];
+                var visible = !equipeId || !option.value || (techniciensDeLequipe || []).indexOf(parseInt(option.value, 10)) !== -1;
+                if (visible) {
+                    responsableSelect.appendChild(option.cloneNode(true));
+                }
+            });
+
+            var optionEncorePresente = Array.prototype.some.call(responsableSelect.options, function (o) {
+                return o.value === valeurActuelle;
+            });
+            if (optionEncorePresente) {
+                responsableSelect.value = valeurActuelle;
+            }
+        }
+
+        equipeSelect.addEventListener('change', filtrerTechniciens);
+    }
+
+})();
+
+// Suggestions IA (optionnelles) : pre-remplissent le type et la description
+// sans rien imposer, l'utilisateur peut tout modifier avant de soumettre.
+// Fonction globale appelee directement par l'attribut onclick du bouton :
+// plus fiable qu'un addEventListener attache apres coup.
+function appliquerSuggestionIA(bouton) {
+    var typeSelect = document.getElementById('id_type_action');
+    var descriptionField = document.getElementById('id_description');
+
+    if (typeSelect) {
+        typeSelect.value = bouton.getAttribute('data-type');
+    }
+    if (descriptionField) {
+        descriptionField.value = bouton.getAttribute('data-description');
+        descriptionField.focus();
+    }
+
+    // Retour visuel explicite pour confirmer que le clic a bien fonctionne.
+    var libelleOriginal = bouton.innerHTML;
+    bouton.innerHTML = '<i class="bi bi-check-lg me-1"></i> Suggestion appliquee';
+    bouton.classList.replace('btn-outline-success', 'btn-success');
+    setTimeout(function () {
+        bouton.innerHTML = libelleOriginal;
+        bouton.classList.replace('btn-success', 'btn-outline-success');
+    }, 1500);
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{% if mode == 'creation' %}Nouvel utilisateur{% elif mode == 'mot_de_passe' %}Mot de passe{% else %}Modifier l'utilisateur{% endif %} - HSETrack{% endblock %}
+{% block page_title %}{% if mode == 'creation' %}Nouvel utilisateur{% elif mode == 'mot_de_passe' %}Mot de passe de {{ utilisateur.username }}{% else %}Modifier {{ utilisateur.username }}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="carte-etroite card">
+    <div class="card-header">
+        {% if mode == 'creation' %}Creation d'un compte{% elif mode == 'mot_de_passe' %}Reinitialisation du mot de passe{% else %}Modification du compte{% endif %}
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form|crispy }}
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-orange">
+                    <i class="bi bi-check-lg me-1"></i> Enregistrer
+                </button>
+                <a href="{% url 'accounts:gestion_utilisateurs' %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

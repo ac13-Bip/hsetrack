@@ -1,0 +1,124 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HSETrack{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}
+<nav id="sidebar">
+    <div class="brand">
+        <div class="brand-name">HSE<span>Track</span></div>
+        <small>Plateforme HSE</small>
+    </div>
+
+    <div class="mt-2">
+        <div class="nav-section">Navigation</div>
+        <a href="{% url 'dashboard:index' %}" class="nav-link {% if request.resolver_match.app_name == 'dashboard' and request.resolver_match.url_name == 'index' %}active{% endif %}">
+            <i class="bi bi-grid-1x2-fill"></i> Tableau de bord
+        </a>
+        <a href="{% url 'incidents:liste' %}" class="nav-link {% if request.resolver_match.url_name == 'liste' %}active{% endif %}">
+            <i class="bi bi-list-ul"></i> Incidents
+        </a>
+        <a href="{% url 'incidents:declarer' %}" class="nav-link {% if request.resolver_match.url_name == 'declarer' %}active{% endif %}">
+            <i class="bi bi-plus-circle"></i> Declarer un incident
+        </a>
+        <a href="{% url 'incidents:notifications' %}" class="nav-link position-relative {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+            <i class="bi bi-bell"></i> Notifications
+            {% if nb_notifications_non_lues %}
+            <span class="badge rounded-pill bg-danger ms-auto">{{ nb_notifications_non_lues }}</span>
+            {% endif %}
+        </a>
+
+        {% if user.a_acces_global %}
+        <div class="nav-section mt-2">Pilotage</div>
+        <a href="{% url 'dashboard:statistiques' %}" class="nav-link {% if request.resolver_match.url_name == 'statistiques' %}active{% endif %}">
+            <i class="bi bi-bar-chart-fill"></i> Statistiques
+        </a>
+        {% endif %}
+
+        <a href="{% url 'incidents:clotures' %}" class="nav-link {% if request.resolver_match.url_name == 'clotures' %}active{% endif %}">
+            <i class="bi bi-archive-fill"></i> Incidents clotures
+        </a>
+
+        {% if user.peut_administrer %}
+        <div class="nav-section mt-2">Administration</div>
+        <a href="{% url 'accounts:gestion_utilisateurs' %}" class="nav-link {% if request.resolver_match.app_name == 'accounts' and request.resolver_match.url_name != 'profile' %}active{% endif %}">
+            <i class="bi bi-people-fill"></i> Utilisateurs
+        </a>
+        <a href="{% url 'admin:index' %}" class="nav-link">
+            <i class="bi bi-gear-fill"></i> Admin Django
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="sidebar-footer">
+        <a href="{% url 'accounts:profile' %}" class="user-chip mb-2 text-decoration-none">
+            <div class="avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+            <div>
+                <div class="user-name">{{ user.get_full_name|default:user.username }}</div>
+                <div class="user-role">{{ user.get_role_display }}</div>
+            </div>
+        </a>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-deconnexion btn btn-sm btn-outline-secondary w-100">
+                <i class="bi bi-box-arrow-right"></i> Deconnexion
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div id="sidebar-overlay" onclick="document.body.classList.remove('sidebar-open')"></div>
+
+<div id="topbar">
+    <div class="d-flex align-items-center gap-2">
+        <button id="sidebar-toggle" class="btn btn-sm btn-light d-lg-none" onclick="document.body.classList.toggle('sidebar-open')">
+            <i class="bi bi-list fs-5"></i>
+        </button>
+        <h1 class="page-heading">{% block page_title %}{% endblock %}</h1>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+        {% if nb_notifications_non_lues %}
+        <a href="{% url 'incidents:notifications' %}" class="text-decoration-none position-relative">
+            <i class="bi bi-bell fs-5 text-muted"></i>
+            <span class="badge-mini position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                {{ nb_notifications_non_lues }}
+            </span>
+        </a>
+        {% endif %}
+        <small class="text-muted d-none d-md-inline">{{ user.service|default:"" }}</small>
+    </div>
+</div>
+
+{% if messages %}
+<div id="messages-zone">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mb-0">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<main id="main-content">
+    {% block content %}{% endblock %}
+</main>
+
+{% else %}
+{% block fullpage %}{% endblock %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

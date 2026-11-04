@@ -1,0 +1,12 @@
+# === Framework web ===
+Django==5.2
+
+# === Formulaires et UI ===
+django-crispy-forms==2.6
+crispy-bootstrap5==2026.3
+
+# Aucune dependance scientifique (scikit-learn/pandas/numpy) : le module
+# intelligence/ est ecrit en pur Python (cf. intelligence/text_utils.py).
+# Choix delibere pour eviter toute fragilite d'environnement (la v1 du
+# projet avait rencontre un probleme de DLL scipy bloquee par une
+# politique Windows AppLocker).

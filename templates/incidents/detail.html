@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{{ incident.reference }} - HSETrack{% endblock %}
+{% block page_title %}Detail et traitement{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="text-navy mb-1 fw-bold">{{ incident.reference }} &ndash; {{ incident.titre }}</h4>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge badge-gravite-{{ incident.gravite }}">{{ incident.get_gravite_display }}</span>
+            <span class="badge badge-statut-{{ incident.statut }}">{{ incident.get_statut_display }}</span>
+            {% if incident.est_en_retard %}
+            <span class="badge bg-danger"><i class="bi bi-alarm"></i> En retard</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        {% if user.peut_gerer_incidents and not lecture_seule %}
+        <a href="{% url 'incidents:qualifier' incident.pk %}" class="btn btn-sm btn-warning">
+            <i class="bi bi-check2-circle"></i> Qualifier
+        </a>
+        <form method="post" action="{% url 'incidents:cloturer' incident.pk %}" class="d-inline"
+              onsubmit="return confirm('Confirmer la cloture de cet incident ?')">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-success">
+                <i class="bi bi-lock"></i> Cloturer
+            </button>
+        </form>
+        <a href="{% url 'incidents:ajouter_action' incident.pk %}" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus"></i> Action
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if lecture_seule %}
+<div class="alert alert-secondary mb-4">
+    <i class="bi bi-lock-fill me-1"></i>
+    Cet incident est <strong>cloture</strong> — consultation en <strong>lecture seule</strong>.
+</div>
+{% endif %}
+
+{% with s=incident.statut %}
+<div class="card mb-4 p-3">
+    <div class="timeline-steps">
+        <div class="timeline-step {% if s == 'DECLARE' %}active{% else %}done{% endif %}">
+            <div class="dot"><i class="bi bi-file-earmark-text"></i></div><div class="label">Declare</div>
+        </div>
+        <div class="timeline-step {% if s == 'EN_ANALYSE' %}active{% elif s == 'AFFECTE' or s == 'EN_TRAITEMENT' or s == 'RESOLU' or s == 'CLOTURE' %}done{% endif %}">
+            <div class="dot"><i class="bi bi-search"></i></div><div class="label">En analyse</div>
+        </div>
+        <div class="timeline-step {% if s == 'AFFECTE' %}active{% elif s == 'EN_TRAITEMENT' or s == 'RESOLU' or s == 'CLOTURE' %}done{% endif %}">
+            <div class="dot"><i class="bi bi-person-fill-check"></i></div><div class="label">Affecte</div>
+        </div>
+        <div class="timeline-step {% if s == 'EN_TRAITEMENT' %}active{% elif s == 'RESOLU' or s == 'CLOTURE' %}done{% endif %}">
+            <div class="dot"><i class="bi bi-tools"></i></div><div class="label">En traitement</div>
+        </div>
+        <div class="timeline-step {% if s == 'RESOLU' %}active{% elif s == 'CLOTURE' %}done{% endif %}">
+            <div class="dot"><i class="bi bi-check-circle"></i></div><div class="label">Resolu</div>
+        </div>
+        <div class="timeline-step {% if s == 'CLOTURE' %}active done{% endif %}">
+            <div class="dot"><i class="bi bi-lock-fill"></i></div><div class="label">Cloture</div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+
+<div class="row g-3">
+    <div class="col-md-8">
+
+        <div class="card mb-3">
+            <div class="card-header">Description de l'incident</div>
+            <div class="card-body"><p class="mb-0">{{ incident.description|linebreaks }}</p></div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Actions correctives / preventives</span>
+                {% if user.peut_gerer_incidents and not lecture_seule %}
+                <a href="{% url 'incidents:ajouter_action' incident.pk %}" class="btn btn-sm btn-orange">
+                    <i class="bi bi-plus"></i> Ajouter
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if actions %}
+                <table class="table mb-0">
+                    <thead>
+                        <tr><th>Action</th><th>Responsable</th><th>Echeance</th><th>Statut</th><th>Suivi</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for action in actions %}
+                        <tr>
+                            <td>
+                                <small class="badge bg-secondary mb-1">{{ action.get_type_action_display }}</small>
+                                <div>{{ action.description }}</div>
+                                {% if action.commentaire_realisation %}
+                                <div class="text-xs text-muted mt-1">
+                                    <i class="bi bi-chat-square-text me-1"></i>Compte rendu : {{ action.commentaire_realisation }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td><small>{{ action.responsable.get_full_name|default:action.responsable.username }}</small></td>
+                            <td><small>{{ action.echeance|date:"d/m/Y" }}</small></td>
+                            <td>
+                                {% if action.statut == 'TERMINEE' %}<span class="badge bg-success">Realise</span>
+                                {% elif action.statut == 'EN_COURS' %}<span class="badge bg-warning text-dark">En cours</span>
+                                {% elif action.statut == 'A_FAIRE' %}<span class="badge bg-info text-dark">Planifie</span>
+                                {% else %}<span class="badge bg-secondary">{{ action.get_statut_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user == action.responsable %}
+                                    {% if action.statut == 'A_FAIRE' %}
+                                    <form method="post" action="{% url 'incidents:demarrer_action' action.pk %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-play-fill"></i> Demarrer
+                                        </button>
+                                    </form>
+                                    {% elif action.statut == 'EN_COURS' %}
+                                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#terminerModal{{ action.pk }}">
+                                        <i class="bi bi-check2"></i> Terminer
+                                    </button>
+                                    <div class="modal fade" id="terminerModal{{ action.pk }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form method="post" action="{% url 'incidents:terminer_action' action.pk %}">
+                                                    {% csrf_token %}
+                                                    <div class="modal-header">
+                                                        <h6 class="modal-title">Terminer l'action</h6>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <label class="text-sm form-label">Compte rendu de realisation (optionnel)</label>
+                                                        <textarea name="commentaire_realisation" class="form-control" rows="3"
+                                                                  placeholder="Ex : intervention effectuee, piece remplacee..."></textarea>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                                                        <button type="submit" class="btn btn-sm btn-success">
+                                                            <i class="bi bi-check2 me-1"></i>Confirmer
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="text-muted text-center py-3">Aucune action definie.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Commentaires</div>
+            <div class="card-body">
+                {% for c in commentaires %}
+                <div class="border-bottom pb-2 mb-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <div class="avatar-initiales avatar-sm">
+                            {{ c.auteur.first_name|first|upper }}{{ c.auteur.last_name|first|upper }}
+                        </div>
+                        <strong class="text-md">{{ c.auteur.get_full_name|default:c.auteur.username }}</strong>
+                        <small class="text-muted ms-auto">{{ c.cree_le|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <p class="text-md mb-0 ms-5">{{ c.contenu }}</p>
+                </div>
+                {% empty %}
+                <p class="text-muted mb-3">Aucun commentaire pour l'instant.</p>
+                {% endfor %}
+
+                {% if not lecture_seule %}
+                <form method="post" class="mt-3">
+                    {% csrf_token %}
+                    {{ comm_form|crispy }}
+                    <button type="submit" name="ajouter_commentaire" class="btn btn-sm btn-primary">
+                        <i class="bi bi-chat-left-text me-1"></i> Publier
+                    </button>
+                </form>
+                {% else %}
+                <p class="text-muted mt-2 mb-0"><i class="bi bi-lock me-1"></i> Incident cloture : ajout desactive.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Qualification</span>
+                {% if user.peut_gerer_incidents and not lecture_seule %}
+                <a href="{% url 'incidents:qualifier' incident.pk %}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <dl class="text-md row mb-0">
+                    <dt class="col-5 text-muted">Categorie</dt><dd class="col-7">{{ incident.categorie.nom }}</dd>
+                    <dt class="col-5 text-muted">Gravite</dt>
+                    <dd class="col-7"><span class="badge badge-gravite-{{ incident.gravite }}">{{ incident.get_gravite_display }}</span></dd>
+                    <dt class="col-5 text-muted">Priorite</dt><dd class="col-7">{{ incident.get_priorite_display }}</dd>
+                    <dt class="col-5 text-muted">Responsable</dt><dd class="col-7">{{ incident.affecte_a|default:"Non affecte" }}</dd>
+                    {% if incident.equipe_affectee %}
+                    <dt class="col-5 text-muted">Equipe</dt><dd class="col-7">{{ incident.equipe_affectee }}</dd>
+                    {% endif %}
+                    <dt class="col-5 text-muted">Echeance</dt><dd class="col-7">{{ incident.echeance|date:"d/m/Y"|default:"-" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Informations</div>
+            <div class="card-body">
+                <dl class="text-md row mb-0">
+                    <dt class="col-5 text-muted">Site</dt><dd class="col-7">{{ incident.site.nom }}</dd>
+                    <dt class="col-5 text-muted">Service</dt><dd class="col-7">{{ incident.service|default:"-" }}</dd>
+                    <dt class="col-5 text-muted">Lieu</dt><dd class="col-7">{{ incident.lieu_precis|default:"-" }}</dd>
+                    <dt class="col-5 text-muted">Declarant</dt><dd class="col-7">{{ incident.declarant.get_full_name|default:incident.declarant.username }}</dd>
+                    <dt class="col-5 text-muted">Date evt.</dt><dd class="col-7">{{ incident.date_evenement|date:"d/m/Y H:i" }}</dd>
+                    <dt class="col-5 text-muted">Declare le</dt><dd class="col-7">{{ incident.cree_le|date:"d/m/Y H:i" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        {% if pieces_jointes %}
+        <div class="card mb-3">
+            <div class="card-header">Pieces jointes</div>
+            <div class="card-body">
+                {% for pj in pieces_jointes %}
+                <div class="mb-1">
+                    <i class="bi bi-paperclip me-1 text-muted"></i>
+                    <a class="text-md" href="{{ pj.fichier.url }}" target="_blank">{{ pj.nom_original }}</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if incidents_similaires %}
+        <div class="card-ia card-ia-orange card mb-3">
+            <div class="card-header">
+                <i class="text-orange bi bi-lightbulb-fill me-1"></i> Incidents similaires <small class="text-muted">(IA)</small>
+            </div>
+            <div class="card-body">
+                {% for inc, score in incidents_similaires %}
+                <div class="mb-2 pb-2 border-bottom">
+                    <a class="text-sm fw-semibold" href="{% url 'incidents:detail' inc.pk %}">{{ inc.reference }}</a>
+                    <span class="badge-orange badge ms-1">{{ score }}%</span>
+                    <div class="text-xs text-muted">{{ inc.titre|truncatechars:45 }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if actions_recommandees %}
+        <div class="card-ia card-ia-vert card mb-3">
+            <div class="card-header">
+                <i class="text-success bi bi-stars me-1"></i> Actions recommandees <small class="text-muted">(IA)</small>
+            </div>
+            <div class="card-body">
+                {% for reco in actions_recommandees %}
+                <div class="mb-2 pb-2 border-bottom">
+                    <span class="badge bg-success">{{ reco.score_pertinence }}%</span>
+                    <strong class="text-sm"> {{ reco.type }}</strong>
+                    <div class="text-xs">{{ reco.description }}</div>
+                    <small class="text-muted">Source : {{ reco.incident_source }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">Historique</div>
+            <div class="zone-defilante card-body">
+                {% for h in historique %}
+                <div class="text-xs mb-2 pb-2 border-bottom">
+                    <strong>{{ h.action }}</strong><br>
+                    <span class="text-muted">{{ h.horodatage|date:"d/m/Y H:i" }}</span>
+                    {% if h.utilisateur %}&nbsp;&mdash;&nbsp;{{ h.utilisateur.get_full_name|default:h.utilisateur.username }}{% endif %}
+                    {% if h.ancien_valeur %}<div class="text-muted">{{ h.ancien_valeur }} &rarr; {{ h.nouvelle_valeur }}</div>{% endif %}
+                </div>
+                {% empty %}
+                <small class="text-muted">Aucun historique.</small>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Incidents - HSETrack{% endblock %}
+{% block page_title %}
+{% if user.a_acces_global %}Tous les incidents
+{% elif user.est_employe %}Incidents de mon site
+{% else %}Mes incidents
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <p class="text-muted mb-0">{{ page_obj.paginator.count }} incident(s) trouve(s)</p>
+    <a href="{% url 'incidents:declarer' %}" class="btn btn-orange">
+        <i class="bi bi-plus-circle me-1"></i> Declarer un incident
+    </a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold mb-1">Recherche</label>
+                <input type="text" name="q" class="form-control form-control-sm"
+                       placeholder="Reference, titre, description..." value="{{ filtres_actifs.q|default:'' }}">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold mb-1">Statut</label>
+                <select name="statut" class="form-select form-select-sm">
+                    <option value="">Tous les statuts</option>
+                    {% for code, label in statuts %}
+                    <option value="{{ code }}" {% if filtres_actifs.statut == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold mb-1">Gravite</label>
+                <select name="gravite" class="form-select form-select-sm">
+                    <option value="">Toutes gravites</option>
+                    {% for code, label in gravites %}
+                    <option value="{{ code }}" {% if filtres_actifs.gravite == code|stringformat:'s' %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-funnel me-1"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span>Liste des incidents</span>
+        <div class="legende-priorite">
+            <span><span class="badge-priorite-1 puce"></span>Basse</span>
+            <span><span class="badge-priorite-2 puce"></span>Normale</span>
+            <span><span class="badge-priorite-3 puce"></span>Haute</span>
+            <span><span class="badge-priorite-4 puce"></span>Urgente</span>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Description</th>
+                    <th>Site</th>
+                    <th>Gravite</th>
+                    <th>Priorite</th>
+                    <th>Statut</th>
+                    <th>Echeance</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inc in page_obj %}
+                <tr class="ligne-cliquable ligne-priorite-{{ inc.priorite }}" onclick="location.href='{% url 'incidents:detail' inc.pk %}'">
+                    <td><a href="{% url 'incidents:detail' inc.pk %}" class="fw-semibold text-decoration-none">{{ inc.reference }}</a></td>
+                    <td class="cellule-titre">
+                        <div class="titre-tronque text-truncate" title="{{ inc.titre }}">{{ inc.titre }}</div>
+                        <small class="text-muted">{{ inc.categorie.nom }}</small>
+                    </td>
+                    <td>{{ inc.site.nom }}</td>
+                    <td><span class="badge badge-gravite-{{ inc.gravite }}">{{ inc.get_gravite_display }}</span></td>
+                    <td><span class="badge badge-priorite-{{ inc.priorite }}">{{ inc.get_priorite_display }}</span></td>
+                    <td><span class="badge badge-statut-{{ inc.statut }}">{{ inc.get_statut_display }}</span></td>
+                    <td>
+                        {% if inc.echeance %}
+                            {% if inc.est_en_retard %}
+                            <span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> {{ inc.echeance|date:"d/m/Y" }}</span>
+                            {% else %}
+                            {{ inc.echeance|date:"d/m/Y" }}
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="empty-state border-0">
+                        <i class="bi bi-inbox"></i>
+                        Aucun incident trouve pour ces criteres.
+                        <br>
+                        <a href="{% url 'incidents:declarer' %}" class="btn btn-sm btn-orange mt-2">Declarer un incident</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-3">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if filtres_actifs.q %}&q={{ filtres_actifs.q }}{% endif %}{% if filtres_actifs.statut %}&statut={{ filtres_actifs.statut }}{% endif %}">&laquo; Precedent</a>
+        </li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if filtres_actifs.q %}&q={{ filtres_actifs.q }}{% endif %}{% if filtres_actifs.statut %}&statut={{ filtres_actifs.statut }}{% endif %}">Suivant &raquo;</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

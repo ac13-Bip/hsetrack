@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Declarer un incident - HSETrack{% endblock %}
+{% block page_title %}Declarer un incident{% endblock %}
+
+{% block content %}
+
+<div class="text-md alert alert-info d-flex align-items-center gap-2 mb-4">
+    <i class="bi bi-info-circle-fill fs-5"></i>
+    <span>
+        Renseignez toutes les informations disponibles. La <strong>priorite</strong>
+        sera suggeree automatiquement par le module intelligent apres soumission.
+    </span>
+</div>
+
+<div class="card">
+    <div class="card-header">Nouvelle declaration d'incident</div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% crispy form %}
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Pieces jointes <small class="text-muted">(photos, constats, rapports…)</small></label>
+                <input type="file" name="pieces_jointes" class="form-control" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx">
+                <small class="text-muted">Vous pouvez selectionner plusieurs fichiers.</small>
+            </div>
+
+            <div class="d-flex gap-2 mt-4 pt-3 border-top">
+                <button type="submit" class="btn btn-orange px-4">
+                    <i class="bi bi-check-lg me-1"></i> Soumettre la declaration
+                </button>
+                <a href="{% url 'incidents:liste' %}" class="btn btn-outline-secondary">Annuler</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
